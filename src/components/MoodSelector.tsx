@@ -1,95 +1,95 @@
-"use client"; // 👈 这一行必须在最上面，因为我们要用 useState
+'use client';
 
-import { useState } from "react";
-import { logMood } from "@/app/actions"; // 引入我们在 actions.ts 里写的后端函数
+import { useState } from 'react';
+import { createClient } from '@/utils/supabase/client';
 
-// 👇 1. 定义组件接收的参数 (解决了 page.tsx 的报错)
-interface MoodSelectorProps {
-  currentUserId: string;
-}
+// 👑 这里定义唯一的两个主人！
+// 把这里的邮箱改成你们注册时填写真实的邮箱
+const VIP_LIST = {
+  'liuhc2000@gmail.com': { name: '辰哥', gender: 'male' }, // 改成你的注册邮箱
+  'dabao@520.com': { name: '大宝', gender: 'female' }  // 改成她的注册邮箱
+};
 
-export default function MoodSelector({ currentUserId }: MoodSelectorProps) {
-  // 定义一些状态：当前选中的心情，以及是否正在提交中
-  const [selectedMood, setSelectedMood] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+// 接收父组件传来的 id 和 email
+export default function MoodSelector({ currentUserId, userEmail }: { currentUserId: string, userEmail?: string }) {
+  const [loading, setLoading] = useState(false);
+  const supabase = createClient();
 
-  // 心情选项配置
-  const moods = [
-    { id: "happy", emoji: "😄", label: "开心" },
-    { id: "sad", emoji: "😭", label: "难过" },
-    { id: "angry", emoji: "😡", label: "生气" },
-    { id: "love", emoji: "🥰", label: "想贴贴" },
-    { id: "tired", emoji: "😴", label: "好累" },
-  ];
+  // 1. 🕵️‍♂️ 身份核查
+  // 如果邮箱没在 VIP_LIST 里，就认定为陌生人
+  // 注意：userEmail 可能为空，所以要判空
+  const currentUser = userEmail && VIP_LIST[userEmail as keyof typeof VIP_LIST];
 
-  // 点击处理函数
-  const handleSelect = async (moodId: string) => {
-    // 如果正在提交中，阻止再次点击（防止重复写入）
-    if (isSubmitting) return;
+  // 如果不是主人，显示这个界面
+  if (!currentUser) {
+    return (
+      <div className="flex flex-col items-center justify-center h-32 text-gray-400 bg-gray-50 rounded-2xl border border-gray-100">
+        <span className="text-2xl">🚫</span>
+        <p className="text-sm font-bold mt-2">访客模式</p>
+        <p className="text-xs">只有辰哥和大宝才能打卡哦</p>
+        <p className="text-xs text-gray-300 mt-1">你的账号: {userEmail}</p>
+      </div>
+    );
+  }
+
+  // 2. 打卡逻辑
+  const handleSelect = async (mood: string) => {
+    setLoading(true);
     
-    // 视觉上立即响应
-    setSelectedMood(moodId);
-    setIsSubmitting(true);
-
-    try {
-      console.log("正在提交心情:", moodId, "用户ID:", currentUserId);
-
-      // 👇 2. 调用后端动作 (Server Action)
-      const result = await logMood({
-        userId: currentUserId,
-        moodType: moodId,
-        note: "来自首页点击" // 这里可以写死，或者以后做成输入框
+    // A. 记录心情
+    const { error } = await supabase
+      .from('mood_logs')
+      .insert({
+        mood_type: mood,
+        user_id: currentUserId,
+        note: `来自${currentUser.name}的打卡` // 自动记录是谁
       });
 
-      if (result.success) {
-        console.log("✅ 心情同步成功！");
-      } else {
-        console.error("❌ 同步失败:", result.error);
-        alert("保存失败，请检查控制台");
-      }
-    } catch (e) {
-      console.error("❌ 系统错误:", e);
-    } finally {
-      // 无论成功失败，500毫秒后恢复按钮可点击状态
-      setTimeout(() => {
-        setIsSubmitting(false);
-      }, 500);
+    if (error) {
+      console.error("❌ 同步失败:", error);
+      alert("保存失败: " + error.message);
+    } else {
+      // B. 加分逻辑 (数据库会自动触发，或者我们可以手动做简单的反馈)
+      alert(`✅ ${currentUser.name} 打卡成功！甜蜜值 +50`);
+      
+      // 刷新页面显示最新数据
+      window.location.reload(); 
     }
+    
+    setLoading(false);
   };
 
+  const moods = [
+    { icon: '😄', label: '开心', color: 'bg-yellow-100 text-yellow-600' },
+    { icon: '😭', label: '难过', color: 'bg-blue-100 text-blue-600' },
+    { icon: '😡', label: '生气', color: 'bg-red-100 text-red-600' },
+    { icon: '🥰', label: '想贴贴', color: 'bg-pink-100 text-pink-600' },
+    { icon: '😴', label: '好累', color: 'bg-gray-100 text-gray-600' },
+  ];
+
   return (
-    <div className="flex flex-col gap-4">
-      {/* 按钮容器 */}
-      <div className="flex justify-between bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-        {moods.map((mood) => (
+    <div className="flex flex-col gap-3">
+      {/* 顶部显示欢迎语 */}
+      <div className="text-xs text-gray-500 text-center mb-1">
+        Hi, <span className="font-bold text-blue-600 text-sm">{currentUser.name}</span> 
+        {currentUser.gender === 'male' ? '👦' : '👧'} 今天心情怎么样？
+      </div>
+
+      <div className="grid grid-cols-5 gap-2">
+        {moods.map((m) => (
           <button
-            key={mood.id}
-            onClick={() => handleSelect(mood.id)}
-            disabled={isSubmitting}
-            className={`
-              flex flex-col items-center gap-1 transition-all duration-200
-              ${selectedMood === mood.id ? "scale-110 -translate-y-1" : "hover:scale-105"}
-              ${isSubmitting ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
-            `}
+            key={m.label}
+            onClick={() => handleSelect(m.label)}
+            disabled={loading}
+            className={`flex flex-col items-center gap-1 p-2 rounded-2xl transition hover:scale-110 active:scale-95 ${m.color} ${loading ? 'opacity-50' : ''}`}
           >
-            <span className="text-3xl filter drop-shadow-sm">{mood.emoji}</span>
-            <span 
-              className={`text-xs font-medium ${
-                selectedMood === mood.id ? "text-brand-blue" : "text-gray-400"
-              }`}
-            >
-              {mood.label}
-            </span>
+            <span className="text-2xl">{m.icon}</span>
+            <span className="text-[10px] font-bold">{m.label}</span>
           </button>
         ))}
       </div>
-
-      {/* 底部状态提示 */}
-      <div className="h-4 text-center">
-        {isSubmitting && (
-          <p className="text-xs text-gray-400 animate-pulse">正在同步到云端...</p>
-        )}
-      </div>
+      
+      {loading && <p className="text-center text-xs text-gray-400">正在同步到云端...</p>}
     </div>
   );
 }

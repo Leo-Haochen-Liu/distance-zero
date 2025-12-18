@@ -1,0 +1,61 @@
+Need to install the following packages:
+tree-node-cli@1.6.0
+Ok to proceed? (y) 
+distance-zero
+├── public
+│   ├── avatar_chenge.svg
+│   ├── avatar_dabao.svg
+│   ├── chenge.png
+│   ├── dabao_2.png
+│   ├── file.svg
+│   ├── globe.svg
+│   ├── vercel.svg
+│   └── window.svg
+├── src
+│   ├── app
+│   │   ├── capsules
+│   │   │   └── page.tsx
+│   │   ├── login
+│   │   │   └── page.tsx
+│   │   ├── profile
+│   │   │   └── page.tsx
+│   │   ├── wishlist
+│   │   │   └── page.tsx
+│   │   ├── actions.ts
+│   │   ├── favicon.ico
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components
+│   │   ├── AppShell.tsx
+│   │   ├── Avatar.tsx
+│   │   ├── BottomNav.tsx
+│   │   ├── Dashboard.tsx
+│   │   ├── InteractionStage.tsx
+│   │   ├── LiveClock.tsx
+│   │   ├── LoveTimer.tsx
+│   │   ├── MoodSelector.tsx
+│   │   ├── SignOutButton.tsx
+│   │   ├── StatusBar.tsx
+│   │   └── TaskBoard.tsx
+│   ├── constants
+│   │   └── couples.ts
+│   ├── lib
+│   │   └── supabase.ts
+│   ├── types
+│   │   └── database.types.ts
+│   └── utils
+│       ├── supabase
+│       │   ├── client.ts
+│       │   └── server.ts
+│       └── birthday.ts
+├── README.md
+├── eslint.config.mjs
+├── next-env.d.ts
+├── next.config.ts
+├── package-lock.json
+├── package.json
+├── postcss.config.mjs
+├── project_structure.txt
+├── tailwind.config.ts
+└── tsconfig.json

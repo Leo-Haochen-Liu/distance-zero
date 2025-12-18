@@ -1,119 +1,168 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { HeartHandshake, Smile, Clock } from "lucide-react";
+import { Heart, Clock, CalendarHeart } from "lucide-react";
 
 export default function LoveTimer() {
-  const [daysTogether, setDaysTogether] = useState(0);
-  const [anniversaryInfo, setAnniversaryInfo] = useState({ count: 0, daysLeft: 0 });
-  const [durationText, setDurationText] = useState({ years: 0, days: 0 });
+  // ----------------------------------------------------------------
+  // 🔧 配置区：请确保这里的时间和你之前的一致
+  // ----------------------------------------------------------------
+  const START_DATE_STR = "2020-12-19T00:00:00"; 
+  // ----------------------------------------------------------------
+
+  const [timeData, setTimeData] = useState({
+    totalDays: 0,
+    years: 0,
+    extraDays: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+    anniversaryCount: 0,
+    daysToAnniversary: 0,
+  });
+
+  // 补零函数 (5 -> 05)
+  const pad = (n: number) => n.toString().padStart(2, "0");
 
   useEffect(() => {
-    // --- 1. 获取当前北京时间 ---
-    // 无论用户在哪个时区，都强制转换为北京时间 (UTC+8)
-    const getBeijingDate = () => {
-      const d = new Date();
-      const localTime = d.getTime();
-      const localOffset = d.getTimezoneOffset() * 60000; // 获得本地时间和UTC的毫秒偏移
-      const utc = localTime + localOffset;
-      const offset = 8; // 北京是 UTC+8
-      const beijing = utc + (3600000 * offset);
-      return new Date(beijing);
+    // 定义计算函数
+    const calculateTime = () => {
+      // --- 1. 基础时间处理 (保留你的北京时间逻辑) ---
+      const getBeijingDate = () => {
+        const d = new Date();
+        const localTime = d.getTime();
+        const localOffset = d.getTimezoneOffset() * 60000;
+        const utc = localTime + localOffset;
+        const offset = 8; // 北京 UTC+8
+        return new Date(utc + (3600000 * offset));
+      };
+
+      const now = getBeijingDate();
+      const startDate = new Date(START_DATE_STR);
+
+      // --- 2. 计算总天数 ---
+      // 重置时分秒，确保只比较日期
+      const nowForDayCalc = new Date(now);
+      nowForDayCalc.setHours(0, 0, 0, 0);
+      const startForDayCalc = new Date(startDate); // 确保 start 也清零
+      startForDayCalc.setHours(0,0,0,0);
+
+      const diffTime = nowForDayCalc.getTime() - startForDayCalc.getTime();
+      const totalDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+      // --- 3. 计算 "X年X天" ---
+      let years = now.getFullYear() - startDate.getFullYear();
+      const startMonth = startDate.getMonth();
+      const startDay = startDate.getDate();
+      const currentMonth = now.getMonth();
+      const currentDay = now.getDate();
+
+      // 如果还没到今年的纪念日，年数减1
+      if (currentMonth < startMonth || (currentMonth === startMonth && currentDay < startDay)) {
+        years--;
+      }
+
+      // 计算零头天数
+      const lastAnniversaryDate = new Date(startDate);
+      lastAnniversaryDate.setFullYear(startDate.getFullYear() + years);
+      // 这里必须重新重置 lastAnniversaryDate 的时分秒，否则计算会有小数误差
+      lastAnniversaryDate.setHours(0,0,0,0);
+      
+      const diffTimeSinceAnniversary = nowForDayCalc.getTime() - lastAnniversaryDate.getTime();
+      const extraDays = Math.floor(diffTimeSinceAnniversary / (1000 * 60 * 60 * 24));
+
+      // --- 4. 纪念日倒计时 ---
+      const currentYear = now.getFullYear();
+      let thisYearAnniversary = new Date(startDate);
+      thisYearAnniversary.setFullYear(currentYear);
+      thisYearAnniversary.setHours(0,0,0,0);
+
+      let targetAnniversaryDate;
+      let nextAnniversaryCount;
+
+      if (nowForDayCalc.getTime() < thisYearAnniversary.getTime()) {
+        targetAnniversaryDate = thisYearAnniversary;
+        nextAnniversaryCount = currentYear - startDate.getFullYear();
+      } else {
+        targetAnniversaryDate = new Date(startDate);
+        targetAnniversaryDate.setFullYear(currentYear + 1);
+        targetAnniversaryDate.setHours(0,0,0,0);
+        nextAnniversaryCount = (currentYear + 1) - startDate.getFullYear();
+      }
+
+      const diffAnniversary = Math.ceil((targetAnniversaryDate.getTime() - nowForDayCalc.getTime()) / (1000 * 60 * 60 * 24));
+
+      // --- 5. 实时时分秒 (这是新增的) ---
+      // 直接用 now (它已经是北京时间了) 获取当前的时分秒
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      const seconds = now.getSeconds();
+
+      setTimeData({
+        totalDays,
+        years,
+        extraDays,
+        hours,
+        minutes,
+        seconds,
+        anniversaryCount: nextAnniversaryCount,
+        daysToAnniversary: diffAnniversary
+      });
     };
 
-    const now = getBeijingDate();
-    // 设定开始时间：2020-12-19 (北京时间)
-    // 为了计算准确，我们将开始时间视为当天的 00:00:00
-    const startDate = new Date("2020-12-19T00:00:00"); 
-    
-    // --- 2. 计算在一起的总天数 ---
-    // 修正：重置 now 的时分秒，确保只比较日期差异，避免不满24小时不算一天的情况
-    const nowForDayCalc = new Date(now);
-    nowForDayCalc.setHours(0, 0, 0, 0);
-    
-    const diffTime = nowForDayCalc.getTime() - startDate.getTime();
-    const totalDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)); // 向下取整，满一天算一天
-    setDaysTogether(totalDays);
+    // 立即执行一次
+    calculateTime();
 
-    // --- 3. 计算 "X年X天" ---
-    // 使用纯日期逻辑计算，避免闰年误差
-    let years = now.getFullYear() - startDate.getFullYear();
-    const startMonth = startDate.getMonth();
-    const startDay = startDate.getDate();
-    const currentMonth = now.getMonth();
-    const currentDay = now.getDate();
+    // 开启定时器，每秒刷新
+    const timer = setInterval(calculateTime, 1000);
 
-    // 如果当前日期还没到当年的纪念日，说明还没满这一年，年份-1
-    if (currentMonth < startMonth || (currentMonth === startMonth && currentDay < startDay)) {
-      years--;
-    }
-
-    // 计算零头天数：用今天 减去 (开始年份 + 满的年数) 的那天
-    const lastAnniversaryDate = new Date(startDate);
-    lastAnniversaryDate.setFullYear(startDate.getFullYear() + years);
-    
-    const diffTimeSinceAnniversary = nowForDayCalc.getTime() - lastAnniversaryDate.getTime();
-    const extraDays = Math.floor(diffTimeSinceAnniversary / (1000 * 60 * 60 * 24));
-    
-    setDurationText({ years, days: extraDays });
-
-    // --- 4. 动态计算下个周年是第几年 & 倒计时 ---
-    const currentYear = now.getFullYear();
-    // 今年的纪念日
-    let thisYearAnniversary = new Date(startDate);
-    thisYearAnniversary.setFullYear(currentYear);
-
-    let targetAnniversaryDate;
-    let nextAnniversaryCount;
-
-    // 如果今天还没过今年的纪念日 (或者就是今天)
-    if (nowForDayCalc.getTime() < thisYearAnniversary.getTime()) {
-      targetAnniversaryDate = thisYearAnniversary;
-      nextAnniversaryCount = currentYear - startDate.getFullYear();
-    } else {
-      // 如果已经过了，目标就是明年
-      targetAnniversaryDate = new Date(startDate);
-      targetAnniversaryDate.setFullYear(currentYear + 1);
-      nextAnniversaryCount = (currentYear + 1) - startDate.getFullYear();
-    }
-
-    const diffAnniversary = Math.ceil((targetAnniversaryDate.getTime() - nowForDayCalc.getTime()) / (1000 * 60 * 60 * 24));
-    
-    setAnniversaryInfo({
-      count: nextAnniversaryCount,
-      daysLeft: diffAnniversary
-    });
-
+    return () => clearInterval(timer);
   }, []);
 
   return (
-    <div className="bg-brand-pink rounded-3xl p-6 text-white border-b-[6px] border-brand-pink-shade relative overflow-hidden group hover:brightness-105 transition-all cursor-default h-full">
-      <HeartHandshake className="absolute -right-6 -bottom-6 w-40 h-40 text-white/20 rotate-12 group-hover:rotate-[20deg] transition-transform duration-500 ease-spring" />
-      
-      <div className="relative z-10 flex flex-col h-full justify-between">
-        <div>
-          <h2 className="font-bold text-rose-950/70 text-sm tracking-wide mb-1">我们在一起已经</h2>
-          
-          <div className="flex items-baseline gap-2">
-            <span className="text-6xl font-black tracking-tighter drop-shadow-sm text-rose-950">
-              {daysTogether}
-            </span>
-            <span className="text-2xl font-bold text-rose-900">天</span>
-          </div>
-
-          <div className="mt-2 flex items-center gap-2 text-rose-900/80 font-bold text-sm bg-white/30 w-fit px-3 py-1 rounded-lg">
-             <Clock size={14} />
-             <span>也就是 {durationText.years} 年 {durationText.days} 天</span>
-          </div>
+    <div className="w-full h-full flex flex-col justify-between text-rose-900">
+      {/* 顶部：标题 + 总天数 */}
+      <div>
+        <div className="flex items-center gap-1.5 opacity-70 mb-1">
+          <Heart className="w-4 h-4 text-rose-500 fill-rose-500 animate-pulse" />
+          <span className="text-xs font-bold tracking-wider uppercase">Love Timeline</span>
         </div>
-
-        <div className="mt-6 inline-flex items-center gap-2 bg-rose-950/10 px-3 py-1.5 rounded-xl backdrop-blur-sm w-fit border border-rose-950/5">
-          <Smile size={16} className="text-rose-900" />
-          {/* ✅ 动态显示：距离X周年还有X天 */}
-          <span className="text-xs font-bold text-rose-900">
-             距离 {anniversaryInfo.count} 周年纪念日: {anniversaryInfo.daysLeft} 天
+        
+        <div className="flex items-baseline gap-2">
+          <span className="text-5xl font-black tracking-tight text-rose-600 drop-shadow-sm">
+            {timeData.totalDays}
           </span>
+          <span className="text-lg font-bold opacity-80">天</span>
         </div>
+      </div>
+
+      {/* 中部：具体年数 + 实时时钟 */}
+      <div className="flex flex-col gap-2 mt-2">
+        {/* 年数胶囊 */}
+        <div className="inline-flex items-center gap-2 bg-white/60 backdrop-blur-sm px-3 py-1.5 rounded-xl border border-rose-100 w-fit">
+           <CalendarHeart className="w-3.5 h-3.5 text-rose-500" />
+           <span className="text-xs font-bold">
+             {timeData.years} 年 {timeData.extraDays} 天
+           </span>
+        </div>
+
+        {/* 实时时间胶囊 (带秒) */}
+        <div className="inline-flex items-center gap-2 bg-rose-100/50 px-3 py-1.5 rounded-xl border border-rose-100 w-fit">
+           <Clock className="w-3.5 h-3.5 text-rose-500" />
+           <span className="text-xs font-mono font-bold tabular-nums">
+             {pad(timeData.hours)} : {pad(timeData.minutes)} : {pad(timeData.seconds)}
+           </span>
+        </div>
+      </div>
+
+      {/* 底部：纪念日提醒 */}
+      <div className="mt-3 pt-3 border-t border-rose-100/50 flex items-center justify-between">
+         <span className="text-[10px] font-bold text-rose-400 bg-white px-2 py-0.5 rounded-full shadow-sm">
+           {timeData.anniversaryCount} 周年纪念日
+         </span>
+         <span className="text-xs font-black text-rose-500">
+           还有 {timeData.daysToAnniversary} 天
+         </span>
       </div>
     </div>
   );
