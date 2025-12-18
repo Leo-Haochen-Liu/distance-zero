@@ -28,7 +28,7 @@ export default async function ProfilePage() {
   // 🔧 配置区：请在这里填入你们的真实邮箱
   // ---------------------------------------------------------
   const MY_EMAIL = 'liuhc2000@gmail.com'; // 你的邮箱
-  const GF_EMAIL = 'dabao@example.com';   // 大宝的邮箱 (请替换)
+  const GF_EMAIL = '2297868156@qq.com';   // 大宝的邮箱 (请替换)
 
   const isMe = user.email === MY_EMAIL;
   const isDabao = user.email === GF_EMAIL;
