@@ -7,7 +7,7 @@ import { createClient } from '@/utils/supabase/client';
 // 把这里的邮箱改成你们注册时填写真实的邮箱
 const VIP_LIST = {
   'liuhc2000@gmail.com': { name: '辰哥', gender: 'male' }, // 改成你的注册邮箱
-  'dabao@520.com': { name: '大宝', gender: 'female' }  // 改成她的注册邮箱
+  '2297868156@qq.com': { name: '大宝', gender: 'female' }  // 改成她的注册邮箱
 };
 
 // 接收父组件传来的 id 和 email
