@@ -1,12 +1,19 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Gift, Calendar as CalendarIcon, MessageCircleHeart } from "lucide-react";
 import Avatar from "./Avatar"; 
 import { calculateBirthdayInfo } from "../utils/birthday"; 
+import { createClient } from "@/utils/supabase/client";
 
-// --- 个人信息卡片组件 (保持不变) ---
+// 👇 真实身份 ID
+const USER_IDS = {
+  chenge: "f44b3b7b-d860-4626-b8bd-651c08a4f8c0", 
+  dabao: "8ad6ffed-c68d-429e-803c-9e1d4f9fee5d" 
+};
+
+// --- 个人信息卡片 (保持不变) ---
 const ProfileCard = ({ type }: { type: 'chenge' | 'dabao' }) => {
   const config = type === 'chenge' 
     ? { type: 'solar' as const, date: '2000-04-02', name: '辰哥', birthStr: '2000.04.02 (阳)' }
@@ -20,7 +27,6 @@ const ProfileCard = ({ type }: { type: 'chenge' | 'dabao' }) => {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 10, scale: 0.9 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
-      // ⚠️ z-index 设为 50，确保浮在最上层
       className="absolute bottom-full mb-6 bg-white/95 backdrop-blur-xl p-5 rounded-3xl shadow-xl border border-white/60 ring-1 ring-gray-100 z-50 w-52 text-left"
     >
       <div className="flex items-center justify-between border-b border-gray-100 pb-3 mb-3">
@@ -42,7 +48,6 @@ const ProfileCard = ({ type }: { type: 'chenge' | 'dabao' }) => {
           </span>
         </div>
       </div>
-      
       <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white rotate-45 border-b border-r border-gray-100"></div>
     </motion.div>
   );
@@ -50,43 +55,86 @@ const ProfileCard = ({ type }: { type: 'chenge' | 'dabao' }) => {
 
 export default function InteractionStage() {
   const [activeProfile, setActiveProfile] = useState<'chenge' | 'dabao' | null>(null);
+  
+  // 🟢 默认文案优化：没数据时显示暖心话
+  const [chengeNotes, setChengeNotes] = useState<string[]>(["想你了...", "今天也要开心!"]); 
+  const [dabaoNotes, setDabaoNotes] = useState<string[]>(["呼叫辰哥...", "贴贴!"]);
+  
+  const [cIndex, setCIndex] = useState(0);
+  const [dIndex, setDIndex] = useState(0);
+
+  const supabase = createClient();
+
+  // 1️⃣ 获取数据
+  useEffect(() => {
+    const fetchNotes = async () => {
+      const { data, error } = await supabase
+        .from('mood_logs')
+        .select('user_id, note')
+        .order('created_at', { ascending: false }) 
+        .limit(30); 
+
+      if (data && !error) {
+        // 筛选辰哥的留言
+        const cNotes = data
+          .filter(item => item.user_id === USER_IDS.chenge && item.note)
+          .map(item => item.note);
+        
+        // 筛选大宝的留言
+        const dNotes = data
+          .filter(item => item.user_id === USER_IDS.dabao && item.note)
+          .map(item => item.note);
+
+        // 只有当真的有数据时，才覆盖默认文案
+        if (cNotes.length > 0) setChengeNotes(cNotes);
+        if (dNotes.length > 0) setDabaoNotes(dNotes);
+      }
+    };
+
+    fetchNotes();
+    
+    // 🟢 实时监听
+    const channel = supabase
+      .channel('realtime_moods')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mood_logs' }, () => {
+          fetchNotes(); 
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // 2️⃣ 轮播定时器
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCIndex((prev) => (prev + 1) % chengeNotes.length);
+      setDIndex((prev) => (prev + 1) % dabaoNotes.length);
+    }, 5000); 
+    return () => clearInterval(interval);
+  }, [chengeNotes.length, dabaoNotes.length]);
 
   const handleInteraction = (type: 'chenge' | 'dabao', isHover: boolean) => {
-    if (isHover) {
-      setActiveProfile(type);
-    } else {
-      setActiveProfile(prev => prev === type ? null : type);
-    }
-  };
-
-  const tapAnimation = {
-    scale: 0.9,
-    transition: { type: "spring" as const, stiffness: 400, damping: 10 } 
+    if (isHover) setActiveProfile(type);
+    else setActiveProfile(prev => prev === type ? null : type);
   };
 
   return (
-    // 🔴 修复关键点 1: 最外层去掉了 "overflow-hidden"
-    // 这样子元素的弹出框就可以超出这个白色的框框显示了
     <div className="w-full min-h-[320px] bg-white rounded-3xl shadow-sm border border-gray-100 relative group select-none">
       
-      {/* 🔴 修复关键点 2: 创建一个独立的背景层，把 "overflow-hidden" 加在这里 */}
-      {/* 这样背景光斑会被切掉，不会溢出，但不会影响上面那一层的头像和弹窗 */}
+      {/* 背景层 */}
       <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
-          {/* 背景装饰 (极淡的红蓝融合) */}
           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-blue-50/40 via-transparent to-rose-50/40"></div>
-          
-          {/* 背景光斑 */}
           <div className="absolute top-[-20%] left-[10%] w-72 h-72 bg-blue-100/30 rounded-full blur-3xl mix-blend-multiply"></div>
           <div className="absolute bottom-[-20%] right-[10%] w-72 h-72 bg-rose-100/30 rounded-full blur-3xl mix-blend-multiply"></div>
       </div>
 
-      {/* 3. 左上角标题 (放在背景层之上) */}
       <div className="absolute top-6 left-6 flex items-center gap-2 opacity-40 z-10">
         <Sparkles size={16} className="text-amber-400" />
-        <span className="text-xs font-bold tracking-[0.2em] uppercase text-gray-400">Current Mood</span>
+        <span className="text-xs font-bold tracking-[0.2em] uppercase text-gray-400">Sweet Messages</span>
       </div>
 
-      {/* 🔴 修复关键点 3: 内容层加上 flex 和 height-full 确保居中 */}
       <div className="relative z-20 w-full h-[320px] flex items-end justify-center pb-12 gap-12 md:gap-24">
         
         {/* 🐶 左边：辰哥 */}
@@ -95,26 +143,27 @@ export default function InteractionStage() {
            initial={{ y: 50, opacity: 0 }}
            animate={{ y: 0, opacity: 1 }}
            transition={{ duration: 0.6 }}
-           
            onHoverStart={() => setActiveProfile('chenge')}
            onHoverEnd={() => setActiveProfile(null)}
            onClick={() => handleInteraction('chenge', false)}
-           
            whileHover={{ scale: 1.05, rotate: -2 }}
-           whileTap={tapAnimation}
+           whileTap={{ scale: 0.9 }} // 👈 直接写在这里，解决报错
         >
-          <AnimatePresence>
+          <AnimatePresence mode="wait">
             {activeProfile === 'chenge' && <ProfileCard type="chenge" />}
             {activeProfile !== 'chenge' && (
                <motion.div 
-                 initial={{ scale: 0.8, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.8 }}
+                 key={cIndex}
+                 initial={{ scale: 0.8, opacity: 0, y: 10 }} 
+                 animate={{ scale: 1, opacity: 1, y: 0 }} 
+                 exit={{ opacity: 0, scale: 0.8, position: "absolute" }}
+                 transition={{ duration: 0.5 }}
                  className="absolute bottom-[110%] mb-2 bg-white px-4 py-2 rounded-2xl rounded-bl-sm border border-blue-100 shadow-sm whitespace-nowrap"
                >
-                 <span className="text-xs font-bold text-blue-900">大宝，想你了！</span>
+                 <span className="text-xs font-bold text-blue-900">{chengeNotes[cIndex]}</span>
                </motion.div>
             )}
           </AnimatePresence>
-          
           <div className="relative filter drop-shadow-lg transition-transform duration-300">
              <div className="absolute inset-0 bg-blue-100 rounded-full scale-90 blur-xl opacity-0 group-hover/boy:opacity-40 transition-opacity"></div>
              <Avatar type="chenge" size={130} />
@@ -133,26 +182,27 @@ export default function InteractionStage() {
            initial={{ y: 50, opacity: 0 }}
            animate={{ y: 0, opacity: 1 }}
            transition={{ delay: 0.1, duration: 0.6 }}
-           
            onHoverStart={() => setActiveProfile('dabao')}
            onHoverEnd={() => setActiveProfile(null)}
            onClick={() => handleInteraction('dabao', false)}
-
            whileHover={{ scale: 1.05, rotate: 2 }}
-           whileTap={tapAnimation}
+           whileTap={{ scale: 0.9 }} // 👈 直接写在这里，解决报错
         >
-          <AnimatePresence>
+          <AnimatePresence mode="wait">
              {activeProfile === 'dabao' && <ProfileCard type="dabao" />}
              {activeProfile !== 'dabao' && (
                 <motion.div 
-                  initial={{ scale: 0.8, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.8 }}
+                  key={dIndex}
+                  initial={{ scale: 0.8, opacity: 0, y: 10 }} 
+                  animate={{ scale: 1, opacity: 1, y: 0 }} 
+                  exit={{ opacity: 0, scale: 0.8, position: "absolute" }}
+                  transition={{ duration: 0.5 }}
                   className="absolute bottom-[110%] mb-2 bg-white px-4 py-2 rounded-2xl rounded-br-sm border border-rose-100 shadow-sm whitespace-nowrap"
                 >
-                  <span className="text-xs font-bold text-rose-900">我也想你辣</span>
+                  <span className="text-xs font-bold text-rose-900">{dabaoNotes[dIndex]}</span>
                 </motion.div>
              )}
           </AnimatePresence>
-
           <div className="relative filter drop-shadow-lg transition-transform duration-300">
              <div className="absolute inset-0 bg-rose-100 rounded-full scale-90 blur-xl opacity-0 group-hover/girl:opacity-40 transition-opacity"></div>
              <Avatar type="dabao" size={130} />
