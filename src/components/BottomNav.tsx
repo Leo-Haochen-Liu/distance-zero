@@ -17,20 +17,23 @@ export default function BottomNav() {
   ];
 
   return (
-    // 外层容器定位
-    // fixed bottom-6: 悬浮在底部上方一点点
-    // left-1/2 -translate-x-1/2: 绝对居中
-    // w-[90%] md:w-[500px]: 手机上占90%宽，PC上最大500px，保持优雅
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] md:w-[400px] z-50">
+    // 【区域 1：总宽度控制】
+    <div className={`
+      fixed bottom-6 left-1/2 -translate-x-1/2 z-50
       
-      {/* 内层样式：
-         1. backdrop-blur-xl: 强力毛玻璃
-         2. bg-white/80: 半透明白底
-         3. shadow-2xl: 深阴影
-         4. shadow-black/10: 专门加了一层浅黑色光晕，增加立体感
-         5. border-white/50: 增加边缘质感
-      */}
-      <div className="bg-white/85 backdrop-blur-xl border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-full px-4 py-2 flex items-center justify-between">
+      /* 👇 修改这个数字：控制导航栏的总长短 */
+      w-[90%] md:w-[300px] 
+    `}>
+      
+      {/* 【区域 2：内边距控制】 */}
+      <div className={`
+        bg-white/85 backdrop-blur-xl border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-full 
+        flex items-center justify-between
+        
+        /* 👇 修改这个数字：控制白色边框的厚度 (留白) */
+        /* 比如改成 p-[4px] 会变细，p-[10px] 会变粗 */
+        p-[6px]
+      `}>
         
         {navItems.map((item) => {
           const isActive = pathname === item.path;
@@ -40,9 +43,16 @@ export default function BottomNav() {
             <Link
               key={item.path}
               href={item.path}
-              className="relative flex-1 flex flex-col items-center justify-center py-2 group cursor-pointer"
+              className={`
+                relative flex items-center justify-center cursor-pointer group
+                
+                /* 【区域 3：按钮大小控制】 */
+                /* 👇 修改这俩数字：控制每个图标按钮的占地面积 */
+                /* 建议保持正方形，数值越大，按钮越胖 */
+                w-[60px] h-[60px]
+              `}
             >
-              {/* 激活背景：淡蓝淡粉渐变 */}
+              {/* 激活背景 */}
               {isActive && (
                 <motion.div
                   layoutId="nav-pill"
@@ -53,8 +63,10 @@ export default function BottomNav() {
                 />
               )}
 
-              <div className={`relative p-2 rounded-full transition-all duration-300 ${isActive ? '-translate-y-1' : ''}`}>
+              <div className={`relative transition-all duration-300 ${isActive ? '-translate-y-0.5' : ''}`}>
                 <Icon
+                  /* 【区域 4：图标本身大小】 */
+                  /* 👇 如果觉得图标太大或太小，改这个数字 */
                   size={24}
                   strokeWidth={isActive ? 2.5 : 2}
                   className={`transition-colors duration-300 ${
@@ -64,12 +76,12 @@ export default function BottomNav() {
                   }`}
                 />
                 
-                {/* 底部小圆点指示器 */}
+                {/* 底部小圆点 */}
                 {isActive && (
                   <motion.div 
                     initial={{ scale: 0 }} 
                     animate={{ scale: 1 }}
-                    className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-gray-800 rounded-full"
+                    className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-gray-800 rounded-full"
                   />
                 )}
               </div>

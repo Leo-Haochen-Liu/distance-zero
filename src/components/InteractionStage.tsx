@@ -110,8 +110,7 @@ export default function InteractionStage() {
                  initial={{ scale: 0.8, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.8 }}
                  className="absolute bottom-[110%] mb-2 bg-white px-4 py-2 rounded-2xl rounded-bl-sm border border-blue-100 shadow-sm whitespace-nowrap"
                >
-                 <span className="text-xs font-bold text-blue-900">汪! 想你了 🦴</span>
-                 <div className="absolute -bottom-1.5 left-3 w-3 h-3 bg-white border-b border-r border-blue-100 rotate-45"></div>
+                 <span className="text-xs font-bold text-blue-900">大宝，想你了！</span>
                </motion.div>
             )}
           </AnimatePresence>
@@ -149,8 +148,7 @@ export default function InteractionStage() {
                   initial={{ scale: 0.8, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.8 }}
                   className="absolute bottom-[110%] mb-2 bg-white px-4 py-2 rounded-2xl rounded-br-sm border border-rose-100 shadow-sm whitespace-nowrap"
                 >
-                  <span className="text-xs font-bold text-rose-900">带好吃的没? 🐟</span>
-                  <div className="absolute -bottom-1.5 right-3 w-3 h-3 bg-white border-b border-r border-rose-100 rotate-45"></div>
+                  <span className="text-xs font-bold text-rose-900">我也想你辣</span>
                 </motion.div>
              )}
           </AnimatePresence>
